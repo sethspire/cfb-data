@@ -14,3 +14,6 @@ wheels/
 
 # VsCode
 .vscode
+
+# Confidential
+ingestion/cfbd_ingest/.chalice/config.json

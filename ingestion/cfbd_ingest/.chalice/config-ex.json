@@ -1,0 +1,12 @@
+{
+  "version": "2.0",
+  "app_name": "cfbd_ingest",
+  "stages": {
+    "dev": {
+      "environment_variables": {
+        "BRONZE_BUCKET": "<bucket-name>",
+        "CFBD_API_KEY": "<api-key>"
+      }
+    }
+  }
+}
