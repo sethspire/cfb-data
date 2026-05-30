@@ -1,4 +1,3 @@
-import os
 import logging
 
 import requests
@@ -7,10 +6,6 @@ from urllib3.util.retry import Retry
 from glom import glom, PathAccessError
 
 from .dates import current_season
-
-
-CFBD_API_KEY = os.getenv('CFBD_API_KEY')
-CFBD_BASE_URL = "https://apinext.collegefootballdata.com"
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -59,7 +54,10 @@ class CFBDClient:
 
         r.raise_for_status()
 
-        return r.json()
+        data = r.json()
+        count = len(data) if isinstance(data, list) else 1
+        log.info("CFBD response: %s — %d records", endpoint, count)
+        return data
 
     # Specific Getters
     def get_conferences(self) -> list[dict]:
@@ -97,7 +95,7 @@ class CFBDClient:
 
         return raw_teams
 
-    def get_games(self, year:int, week:int|None=None, season_type:str|None=None, game_id:int|None=None) -> list[dict]:
+    def get_games(self, year:int, week:int|None=None, season_type:str|None="both", game_id:int|None=None) -> list[dict]:
         """Fetches games from CFBD API. Automatically fetches for all classifications. Can fetch single game if game_id is provided
         
         Args:
@@ -146,7 +144,7 @@ class CFBDClient:
 
         return raw_advanced_box 
 
-    def get_drives(self, year:int, week:int|None=None, season_type:str|None=None) -> list[dict]:
+    def get_drives(self, year:int, week:int|None=None, season_type:str|None="both") -> list[dict]:
         """Fetches drives from CFBD API. Automatically fetches for all classifications
         
         Args:
@@ -167,7 +165,7 @@ class CFBDClient:
 
         return self._get("drives", **params)
 
-    def get_plays(self, year:int, week:int|None=None, season_type:str|None=None) -> list[dict]:
+    def get_plays(self, year:int, week:int|None=None, season_type:str|None="both") -> list[dict]:
         """Fetches plays from CFBD API. Automatically fetches for all classifications
         
         Args:

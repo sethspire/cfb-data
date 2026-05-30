@@ -15,9 +15,10 @@ dependencies = [
 [dependency-groups]
 test = [
     "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
     "responses>=0.26.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["ingestion"]
+pythonpath = ["."]

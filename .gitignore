@@ -17,3 +17,6 @@ wheels/
 
 # Confidential
 ingestion/cfbd_ingest/.chalice/config.json
+
+# temp
+scratch.py
