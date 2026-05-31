@@ -61,6 +61,8 @@ class TestBronzeIngestion:
 
     def test_ingest_plays(self, ingestion, client, writer):
         client.get_plays.return_value = [{"id": 1}]
-        ingestion.ingest_plays(2024)
-        client.get_plays.assert_called_once_with(year=2024)
-        writer.write_entity.assert_called_once_with("plays", [{"id": 1}], params={"year": 2024})
+        ingestion.ingest_plays(2024, week=1)
+        client.get_plays.assert_called_once_with(year=2024, week=1)
+        writer.write_entity.assert_called_once_with(
+            "plays", [{"id": 1}], params={"year": 2024, "week": 1}
+        )

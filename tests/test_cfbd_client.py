@@ -1,5 +1,6 @@
 # ─────────────────────────────────────────────────────────────────────────────
 import pytest
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 from requests.exceptions import HTTPError
 import responses
@@ -317,7 +318,7 @@ class TestGetPlays:
         mock_resp = make_mock_response(expected)
 
         with patch.object(client.session, "get", return_value=mock_resp):
-            result = client.get_plays(2024)
+            result = client.get_plays(2024, week=1)
 
         assert result == expected
 
@@ -325,7 +326,7 @@ class TestGetPlays:
         mock_resp = make_mock_response([])
 
         with patch.object(client.session, "get", return_value=mock_resp) as mock_get:
-            client.get_plays(2024)
+            client.get_plays(2024, week=1)
 
         url_called = mock_get.call_args[0][0]
         assert url_called == f"{CFBDClient.BASE_URL}/plays"
@@ -338,6 +339,74 @@ class TestGetPlays:
 
         _, kwargs = mock_get.call_args
         assert kwargs["params"] == {"year": 2024, "week": 1, "seasonType": "both"}
+
+
+# ── get_calendar ────────────────────────────────────────────────────────────
+class TestGetCalendar:
+    def test_calls_correct_endpoint(self, client):
+        mock_resp = make_mock_response([])
+
+        with patch.object(client.session, "get", return_value=mock_resp) as mock_get:
+            client.get_calendar(2024)
+
+        url_called = mock_get.call_args[0][0]
+        assert url_called == f"{CFBDClient.BASE_URL}/calendar"
+
+    def test_passes_year_param(self, client):
+        mock_resp = make_mock_response([])
+
+        with patch.object(client.session, "get", return_value=mock_resp) as mock_get:
+            client.get_calendar(2024)
+
+        _, kwargs = mock_get.call_args
+        assert kwargs["params"] == {"year": 2024}
+
+    def test_returns_parsed_json(self, client):
+        expected = [{"season": 2024, "week": 1, "seasonType": "regular"}]
+        mock_resp = make_mock_response(expected)
+
+        with patch.object(client.session, "get", return_value=mock_resp):
+            result = client.get_calendar(2024)
+
+        assert result == expected
+
+
+# ── get_current_week ────────────────────────────────────────────────────────
+class TestGetCurrentWeek:
+    def test_returns_matching_week(self, client):
+        calendar_data = [
+            {"season": 2024, "week": 1, "seasonType": "regular", "startDate": "2024-08-24T00:00:00Z", "endDate": "2024-08-27T23:59:59Z"},
+            {"season": 2024, "week": 2, "seasonType": "regular", "startDate": "2024-08-28T00:00:00Z", "endDate": "2024-09-03T23:59:59Z"},
+        ]
+
+        with patch.object(client.session, "get", return_value=make_mock_response(calendar_data)):
+            now = datetime(2024, 8, 30, 12, 0, 0, tzinfo=timezone.utc)
+            result = client.get_current_week(season=2024, now=now)
+
+        assert result == calendar_data[1]
+
+    def test_returns_none_when_off_season(self, client):
+        calendar_data = [
+            {"season": 2024, "week": 1, "seasonType": "regular", "startDate": "2024-08-24T00:00:00Z", "endDate": "2024-08-27T23:59:59Z"},
+        ]
+
+        with patch.object(client.session, "get", return_value=make_mock_response(calendar_data)):
+            now = datetime(2024, 7, 1, 12, 0, 0, tzinfo=timezone.utc)
+            result = client.get_current_week(season=2024, now=now)
+
+        assert result is None
+
+    def test_uses_current_season_when_not_specified(self, client):
+        calendar_data = [
+            {"season": 2024, "week": 5, "seasonType": "regular", "startDate": "2024-09-28T00:00:00Z", "endDate": "2024-10-01T23:59:59Z"},
+        ]
+
+        with patch.object(client.session, "get", return_value=make_mock_response(calendar_data)):
+            with patch("ingestion.cfbd_ingest.chalicelib.cfbd_client.current_season", return_value=2024):
+                now = datetime(2024, 9, 30, 12, 0, 0, tzinfo=timezone.utc)
+                result = client.get_current_week(now=now)
+
+        assert result == calendar_data[0]
 
 
 # ── get_advanced_box ─────────────────────────────────────────────────────────

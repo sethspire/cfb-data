@@ -37,7 +37,7 @@ class BronzeIngestion:
         params = {"year": year} | kwargs
         return self._ingest("drives", data, params=params)
 
-    def ingest_plays(self, year: int, **kwargs) -> str:
-        data = self.client.get_plays(year=year, **kwargs)
-        params = {"year": year} | kwargs
+    def ingest_plays(self, year: int, week: int, **kwargs) -> str:
+        data = self.client.get_plays(year=year, week=week, **kwargs)
+        params = {"year": year, "week": week} | kwargs
         return self._ingest("plays", data, params=params)

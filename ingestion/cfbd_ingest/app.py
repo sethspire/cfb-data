@@ -38,9 +38,25 @@ def weekly_ingest(event):
     ingestion.ingest_conferences()
     ingestion.ingest_venues()
     ingestion.ingest_teams(season)
-    ingestion.ingest_games(season)
-    ingestion.ingest_drives(season)
-    ingestion.ingest_plays(season)
+
+    try:
+        api_key = os.environ["CFBD_API_KEY"]
+        cal_client = CFBDClient(api_key)
+        cur = cal_client.get_current_week(season)
+    except Exception:
+        log.exception("Failed to determine current week")
+        cur = None
+
+    if cur:
+        week = cur["week"]
+        season_type = cur.get("seasonType", "both")
+        log.info("Current week found: week=%d, season_type=%s", week, season_type)
+        ingestion.ingest_games(season, week=week, season_type=season_type)
+        ingestion.ingest_drives(season, week=week, season_type=season_type)
+        ingestion.ingest_plays(season, week=week, season_type=season_type)
+    else:
+        log.info("No current week — fetching full-season games, skipping drives and plays")
+        ingestion.ingest_games(season)
 
     log.info("Weekly ingest complete for season %d", season)
 
@@ -65,11 +81,15 @@ def ingest_entity(entity: str):
     log.info("Manual ingest: entity=%s, season=%s%s",
              entity, season, f", {extra}" if extra else "")
 
-    ingestion = _build_ingestion()
-
     entity = entity.lower()
     if entity[-1] != "s":
         entity += "s"
+
+    if entity == "plays" and "week" not in extra:
+        log.warning("Plays request missing week param (400)")
+        return {"error": "week query parameter is required for plays"}, 400
+
+    ingestion = _build_ingestion()
 
     handlers = {
         "conferences": lambda: ingestion.ingest_conferences(),
@@ -77,7 +97,7 @@ def ingest_entity(entity: str):
         "teams": lambda: ingestion.ingest_teams(season),
         "games": lambda: ingestion.ingest_games(season, **extra),
         "drives": lambda: ingestion.ingest_drives(season, **extra),
-        "plays": lambda: ingestion.ingest_plays(season, **extra),
+        "plays": lambda: ingestion.ingest_plays(season, week=extra["week"], **{k: v for k, v in extra.items() if k != "week"}),
     }
 
     handler = handlers.get(entity)

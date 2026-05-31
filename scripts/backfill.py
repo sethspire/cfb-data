@@ -73,7 +73,14 @@ def main():
         ingestion.ingest_teams(year)
         ingestion.ingest_games(year, season_type="both")
         ingestion.ingest_drives(year, season_type="both")
-        ingestion.ingest_plays(year, season_type="both")
+
+        calendar = client.get_calendar(year)
+        if calendar:
+            for entry in calendar:
+                ingestion.ingest_plays(year, week=entry["week"], season_type=entry.get("seasonType", "both"))
+        else:
+            print(f"  No calendar data — skipping plays for {year}")
+
         save_checkpoint(checkpoint_path, year)
         if args.delay:
             time.sleep(args.delay)

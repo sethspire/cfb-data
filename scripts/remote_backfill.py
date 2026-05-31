@@ -21,6 +21,7 @@ from pathlib import Path
 import requests
 from requests.adapters import HTTPAdapter
 
+from ingestion.cfbd_ingest.chalicelib.cfbd_client import CFBDClient
 from ingestion.cfbd_ingest.chalicelib.dates import current_season
 
 
@@ -86,6 +87,7 @@ def main():
     parser.add_argument("--api-secret", help="X-Api-Key header value (optional)")
     parser.add_argument("--start-year", type=int, default=1876, help="Start year (default: 1876)")
     parser.add_argument("--delay", type=float, default=0.5, help="Seconds between years (default: 0.5)")
+    parser.add_argument("--cfbd-api-key", help="CFBD API key (needed for calendar to determine weeks per year)")
     parser.add_argument("--max-retries", type=int, default=3, help="Max retries per request (default: 3)")
     parser.add_argument("--checkpoint-path", default=str(CHECKPOINT_FILE), help="Checkpoint file path")
     args = parser.parse_args()
@@ -93,6 +95,11 @@ def main():
     endpoint_url = args.endpoint_url.rstrip("/")
     secret = args.api_secret or os.environ.get("API_SECRET")
     checkpoint_path = Path(args.checkpoint_path)
+
+    cfbd_api_key = args.cfbd_api_key or os.environ.get("CFBD_API_KEY")
+    cal_client = CFBDClient(cfbd_api_key) if cfbd_api_key else None
+    if not cal_client:
+        print("Warning: no CFBD_API_KEY — plays will be skipped (use --cfbd-api-key)")
 
     session = requests.Session()
     adapter = HTTPAdapter()
@@ -113,15 +120,36 @@ def main():
         if not ok:
             print(f"  Fatal: {entity} failed — aborting")
             sys.exit(1)
+    
+    if args.delay:
+        # after static entities, wait to avoid rate limits
+        time.sleep(args.delay)
 
     for year in range(start, end + 1):
         print(f"Year {year}...")
         all_ok = True
-        for entity in SEASONAL_ENTITIES:
+        for entity in ["teams", "games", "drives"]:
             params = {"season": str(year), "season_type": "both"}
             ok = post_with_retry(session, f"{endpoint_url}/ingest/{entity}", secret, params, args.max_retries)
             if not ok:
                 all_ok = False
+
+        if args.delay:
+            # before plays, wait to avoid rate limits
+            time.sleep(args.delay)
+
+        if cal_client:
+            calendar = cal_client.get_calendar(year)
+            if calendar:
+                for entry in calendar:
+                    params = {"season": str(year), "week": entry["week"], "season_type": entry.get("seasonType", "both")}
+                    ok = post_with_retry(session, f"{endpoint_url}/ingest/plays", secret, params, args.max_retries)
+                    if not ok:
+                        all_ok = False
+            else:
+                print(f"  No calendar data — skipping plays for {year}")
+        else:
+            print(f"  No API key — skipping plays for {year}")
 
         if all_ok:
             save_checkpoint(checkpoint_path, year)
