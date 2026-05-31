@@ -15,10 +15,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from ingestion.cfbd_ingest.services.bronze_ingestion import BronzeIngestion
-from ingestion.cfbd_ingest.services.cfbd_client import CFBDClient
-from ingestion.cfbd_ingest.services.dates import current_season
-from ingestion.cfbd_ingest.services.s3_writer import BronzeWriter
+from ingestion.cfbd_ingest.chalicelib.bronze_ingestion import BronzeIngestion
+from ingestion.cfbd_ingest.chalicelib.cfbd_client import CFBDClient
+from ingestion.cfbd_ingest.chalicelib.dates import current_season
+from ingestion.cfbd_ingest.chalicelib.s3_writer import BronzeWriter
 
 
 CHECKPOINT_FILE = Path(__file__).parent / ".backfill_checkpoint.json"

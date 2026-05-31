@@ -21,7 +21,7 @@ from pathlib import Path
 import requests
 from requests.adapters import HTTPAdapter
 
-from ingestion.cfbd_ingest.services.dates import current_season
+from ingestion.cfbd_ingest.chalicelib.dates import current_season
 
 
 CHECKPOINT_FILE = Path(__file__).parent / ".remote_backfill_checkpoint.json"

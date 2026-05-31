@@ -2,12 +2,12 @@ import pytest
 from unittest.mock import patch
 from datetime import datetime, timezone
 
-from ingestion.cfbd_ingest.services import dates
+from ingestion.cfbd_ingest.chalicelib import dates
 
 
 @pytest.fixture
 def mock_datetime():
-    with patch("ingestion.cfbd_ingest.services.dates.datetime") as mock_datetime:
+    with patch("ingestion.cfbd_ingest.chalicelib.dates.datetime") as mock_datetime:
         yield mock_datetime
 
 def test_utc_now_iso(mock_datetime):
@@ -26,7 +26,7 @@ def test_current_season(mock_datetime):
     assert dates.current_season() == 2024
 
 def test_current_season_uses_utc():
-    with patch("ingestion.cfbd_ingest.services.dates.datetime") as mock_dt:
+    with patch("ingestion.cfbd_ingest.chalicelib.dates.datetime") as mock_dt:
         mock_dt.now.return_value = datetime(2025, 6, 1, tzinfo=timezone.utc)
         result = dates.current_season()
         mock_dt.now.assert_called_once_with(timezone.utc)

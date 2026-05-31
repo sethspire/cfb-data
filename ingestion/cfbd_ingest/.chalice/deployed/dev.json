@@ -1,5 +1,39 @@
 {
-  "resources": [],
+  "resources": [
+    {
+      "name": "weekly_ingest_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws:iam::045511193184:role/cfbd_ingest-dev-weekly_ingest",
+      "role_name": "cfbd_ingest-dev-weekly_ingest"
+    },
+    {
+      "name": "weekly_ingest",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws:lambda:us-east-1:045511193184:function:cfbd_ingest-dev-weekly_ingest"
+    },
+    {
+      "name": "weekly_ingest-event",
+      "resource_type": "cloudwatch_event",
+      "rule_name": "cfbd_ingest-dev-weekly_ingest-event"
+    },
+    {
+      "name": "api_handler_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws:iam::045511193184:role/cfbd_ingest-dev-api_handler",
+      "role_name": "cfbd_ingest-dev-api_handler"
+    },
+    {
+      "name": "api_handler",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws:lambda:us-east-1:045511193184:function:cfbd_ingest-dev"
+    },
+    {
+      "name": "rest_api",
+      "resource_type": "rest_api",
+      "rest_api_id": "eqcrxal5i4",
+      "rest_api_url": "https://eqcrxal5i4.execute-api.us-east-1.amazonaws.com/api/"
+    }
+  ],
   "schema_version": "2.0",
   "backend": "api"
 }

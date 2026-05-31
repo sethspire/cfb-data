@@ -21,4 +21,4 @@ test = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = [".", "ingestion/cfbd_ingest"]

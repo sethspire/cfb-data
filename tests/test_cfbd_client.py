@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 from requests.exceptions import HTTPError
 import responses
 
-from ingestion.cfbd_ingest.services.cfbd_client import CFBDClient
+from ingestion.cfbd_ingest.chalicelib.cfbd_client import CFBDClient
 
 
 API_KEY = "test-api-key"
@@ -199,7 +199,7 @@ class TestGetTeams:
     def test_injects_current_season_when_none(self, client):
         mock_resp = make_mock_response([{"id": 1}])
 
-        with patch("ingestion.cfbd_ingest.services.cfbd_client.current_season", return_value=2024):
+        with patch("ingestion.cfbd_ingest.chalicelib.cfbd_client.current_season", return_value=2024):
             with patch.object(client.session, "get", return_value=mock_resp):
                 result = client.get_teams()
 

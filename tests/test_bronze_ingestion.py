@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 
-from ingestion.cfbd_ingest.services.bronze_ingestion import BronzeIngestion
+from ingestion.cfbd_ingest.chalicelib.bronze_ingestion import BronzeIngestion
 
 
 class TestBronzeIngestion:

@@ -2,7 +2,7 @@ import json
 import pytest
 from unittest.mock import MagicMock, patch
 
-from ingestion.cfbd_ingest.services.s3_writer import BronzeWriter
+from ingestion.cfbd_ingest.chalicelib.s3_writer import BronzeWriter
 
 # NOTE: tmp_path is a fixture provided by pytest, built in to the pytest library and cleaned up after each test
 

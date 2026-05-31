@@ -4,10 +4,10 @@ from datetime import datetime, timezone
 
 from chalice import Chalice
 
-from .services.bronze_ingestion import BronzeIngestion
-from .services.cfbd_client import CFBDClient
-from .services.dates import current_season
-from .services.s3_writer import BronzeWriter
+from chalicelib.bronze_ingestion import BronzeIngestion
+from chalicelib.cfbd_client import CFBDClient
+from chalicelib.dates import current_season
+from chalicelib.s3_writer import BronzeWriter
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
