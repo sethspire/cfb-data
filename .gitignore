@@ -19,6 +19,13 @@ wheels/
 ingestion/cfbd_ingest/.chalice/config.json
 deployment.md
 
+# Terraform
+architecture/terraform/.terraform/
+architecture/terraform/terraform.tfstate*
+architecture/terraform/crash.log
+*.tfvars
+
+
 # temp
 scratch.py
 scratch_work

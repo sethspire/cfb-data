@@ -6,7 +6,8 @@ sudo dnf install -y git
 
 # Install uv (Python package manager)
 curl -LsSf https://astral.sh/uv/install.sh | sh
-source "$HOME/.cargo/env" 2>/dev/null || true
+# source "$HOME/.cargo/env" 2>/dev/null || true
+export PATH="$HOME/.local/bin:$PATH"
 
 # Clone the repo
 git clone -b llm-ingestion-test https://github.com/sethspire/cfb-data.git /home/ec2-user/cfb-data
