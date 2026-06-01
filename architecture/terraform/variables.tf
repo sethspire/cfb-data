@@ -36,3 +36,9 @@ variable "ami_name_filter" {
   type        = string
   default     = "al2023-ami-*-kernel-6.1-x86_64"
 }
+
+variable "cfbd_api_key" {
+  description = "CollegeFootballData.com API key"
+  type        = string
+  sensitive   = true
+}

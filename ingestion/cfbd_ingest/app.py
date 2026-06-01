@@ -1,8 +1,9 @@
+import json
 import logging
 import os
 from datetime import datetime, timezone
 
-from chalice import Chalice
+from chalice import Chalice, Response
 
 from chalicelib.bronze_ingestion import BronzeIngestion
 from chalicelib.cfbd_client import CFBDClient
@@ -68,7 +69,11 @@ def ingest_entity(entity: str):
         provided = app.current_request.headers.get("x-api-key", "")
         if provided != secret:
             log.warning("Rejected unauthorized request (403)")
-            return {"error": "Forbidden"}, 403
+            return Response(
+                body='{"error": "Forbidden"}', 
+                status_code=403, 
+                headers={"Content-Type": "application/json"}
+            )
 
     qp = app.current_request.query_params or {}
     season = int(qp["season"]) if "season" in qp else current_season()
@@ -87,7 +92,11 @@ def ingest_entity(entity: str):
 
     if entity == "plays" and "week" not in extra:
         log.warning("Plays request missing week param (400)")
-        return {"error": "week query parameter is required for plays"}, 400
+        return Response(
+            body='{"error": "week query parameter is required for plays"}', 
+            status_code=400, 
+            headers={"Content-Type": "application/json"}
+        )
 
     ingestion = _build_ingestion()
 
@@ -103,7 +112,11 @@ def ingest_entity(entity: str):
     handler = handlers.get(entity)
     if handler is None:
         log.warning("Unknown entity requested: %s (400)", entity)
-        return {"error": f"Unknown entity: {entity}"}, 400
+        return Response(
+            body=json.dumps({"error": f"Unknown entity: {entity}"}), 
+            status_code=400, 
+            headers={"Content-Type": "application/json"}
+        )
 
     key = handler()
     return {"entity": entity, "key": key, "season": season, **extra}

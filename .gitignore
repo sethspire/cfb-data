@@ -17,6 +17,7 @@ wheels/
 
 # Confidential
 ingestion/cfbd_ingest/.chalice/config.json
+deployment.md
 
 # temp
 scratch.py

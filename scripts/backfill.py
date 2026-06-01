@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One-time backfill script for historical CFB data.
+"""One-time backfill script for historical CFB data. Runs everything on the local machine.
 
 Usage:
     uv run python scripts/backfill.py --local-dir ./bronze_data

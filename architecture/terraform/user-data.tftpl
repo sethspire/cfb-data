@@ -9,14 +9,15 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 source "$HOME/.cargo/env" 2>/dev/null || true
 
 # Clone the repo
-git clone https://github.com/<your-org>/cfb-data.git /home/ec2-user/cfb-data
+git clone -b llm-ingestion-test https://github.com/sethspire/cfb-data.git /home/ec2-user/cfb-data
 cd /home/ec2-user/cfb-data
 
 # Install Python dependencies
 uv sync
 
 # Run backfill
+export CFBD_API_KEY="${cfbd_api_key}"
 uv run python scripts/backfill.py \
-  --bucket "<your-bucket>" \
+  --bucket "${bucket_name}" \
   --start-year 2025 \
-  --delay 0.5
+  --delay 1.0 2>&1 | tee /home/ec2-user/backfill.log
