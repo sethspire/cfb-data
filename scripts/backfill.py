@@ -8,9 +8,11 @@ Usage:
 
 import argparse
 import json
+import logging
 import os
 import time
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -42,6 +44,8 @@ def main():
     parser.add_argument("--api-key", help="CFBD API key (default: CFBD_API_KEY env var)")
     parser.add_argument("--delay", type=float, default=0.5, help="Seconds between years to avoid rate limits (default: 0.5)")
     parser.add_argument("--checkpoint-path", default=str(CHECKPOINT_FILE), help="Checkpoint file path")
+    parser.add_argument("--log-dir", default="./logs", help="Directory for local log files (default: ./logs)")
+    parser.add_argument("--no-upload-logs", action="store_true", help="Skip uploading log to S3 at the end")
     args = parser.parse_args()
 
     api_key = args.api_key or os.environ.get("CFBD_API_KEY")
@@ -56,20 +60,34 @@ def main():
     start = args.start_year
     checkpoint_path = Path(args.checkpoint_path)
 
+    log_ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    log_file = Path(args.log_dir) / f"backfill_{log_ts}.log"
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s  %(name)s  %(levelname)s  %(message)s",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(str(log_file)),
+        ],
+    )
+    log = logging.getLogger("backfill")
+
     checkpoint = load_checkpoint(checkpoint_path)
     if checkpoint:
         start = max(start, checkpoint["last_year"] + 1)
-        print(f"Resuming from year {start} (checkpoint: {checkpoint['last_year']})")
+        log.info("Resuming from year %d (checkpoint: %d)", start, checkpoint["last_year"])
     else:
-        print(f"Starting fresh from year {start} with no checkpoint")
+        log.info("Starting fresh from year %d with no checkpoint", start)
 
-    print("Ingesting static entities (conferences, venues) ...")
+    log.info("Ingesting static entities (conferences, venues) ...")
     ingestion.ingest_conferences()
     ingestion.ingest_venues()
 
-    print(f"Ingesting historical data from {start} to {end} (teams, games, drives, plays) ...")
+    log.info("Ingesting historical data from %d to %d (teams, games, drives, plays) ...", start, end)
     for year in range(start, end + 1):
-        print(f"Year {year} ...")
+        log.info("Year %d ...", year)
         ingestion.ingest_teams(year)
         ingestion.ingest_games(year, season_type="both")
         ingestion.ingest_drives(year, season_type="both")
@@ -79,7 +97,7 @@ def main():
             for entry in calendar:
                 ingestion.ingest_plays(year, week=entry["week"], season_type=entry.get("seasonType", "both"))
         else:
-            print(f"  No calendar data — skipping plays for {year}")
+            log.info("  No calendar data — skipping plays for %d", year)
 
         save_checkpoint(checkpoint_path, year)
         if args.delay:
@@ -87,7 +105,15 @@ def main():
 
     if checkpoint_path.exists():
         checkpoint_path.unlink()
-    print("Backfill complete!")
+    log.info("Backfill complete!")
+
+    if args.bucket and not args.no_upload_logs:
+        import boto3
+        s3 = boto3.client("s3")
+        ingest_date = f"{log_ts[:4]}-{log_ts[4:6]}-{log_ts[6:8]}"
+        s3_key = f"logs/backfill/ingest_date={ingest_date}/backfill_{log_ts}.log"
+        s3.upload_file(str(log_file), args.bucket, s3_key)
+        log.info("Log uploaded to s3://%s/%s", args.bucket, s3_key)
 
 
 if __name__ == "__main__":
