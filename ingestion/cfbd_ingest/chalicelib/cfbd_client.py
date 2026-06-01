@@ -1,5 +1,5 @@
-import os
 import logging
+from datetime import datetime, timezone
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -7,10 +7,6 @@ from urllib3.util.retry import Retry
 from glom import glom, PathAccessError
 
 from .dates import current_season
-
-
-CFBD_API_KEY = os.getenv('CFBD_API_KEY')
-CFBD_BASE_URL = "https://apinext.collegefootballdata.com"
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -59,7 +55,10 @@ class CFBDClient:
 
         r.raise_for_status()
 
-        return r.json()
+        data = r.json()
+        count = len(data) if isinstance(data, list) else 1
+        log.info("CFBD response: %s — %d records", endpoint, count)
+        return data
 
     # Specific Getters
     def get_conferences(self) -> list[dict]:
@@ -97,7 +96,7 @@ class CFBDClient:
 
         return raw_teams
 
-    def get_games(self, year:int, week:int|None=None, season_type:str|None=None, game_id:int|None=None) -> list[dict]:
+    def get_games(self, year:int, week:int|None=None, season_type:str|None="both", game_id:int|None=None) -> list[dict]:
         """Fetches games from CFBD API. Automatically fetches for all classifications. Can fetch single game if game_id is provided
         
         Args:
@@ -146,7 +145,7 @@ class CFBDClient:
 
         return raw_advanced_box 
 
-    def get_drives(self, year:int, week:int|None=None, season_type:str|None=None) -> list[dict]:
+    def get_drives(self, year:int, week:int|None=None, season_type:str|None="both") -> list[dict]:
         """Fetches drives from CFBD API. Automatically fetches for all classifications
         
         Args:
@@ -167,12 +166,12 @@ class CFBDClient:
 
         return self._get("drives", **params)
 
-    def get_plays(self, year:int, week:int|None=None, season_type:str|None=None) -> list[dict]:
+    def get_plays(self, year:int, week:int, season_type:str|None="both") -> list[dict]:
         """Fetches plays from CFBD API. Automatically fetches for all classifications
         
         Args:
             year (int): year to fetch
-            week (int | None): week to fetch, optional, returns all weeks if not provided
+            week (int): week to fetch (not optional, cannot query all weeks at once)
             season_type (str | None): optional season type (regular, postseason, both, allstar, spring_regular, spring_postseason), defaults to None which defers to "both"
             
         Returns:
@@ -187,4 +186,44 @@ class CFBDClient:
         params = {k: v for k, v in params.items() if v is not None}
 
         return self._get("plays", **params)
+
+    def get_calendar(self, year: int) -> list[dict]:
+        """Fetches season calendar from CFBD API
+
+        Args:
+            year (int): year to fetch
+
+        Returns:
+            list[dict]: List of calendar week entries
+        """
+        return self._get("calendar", year=year)
+
+    def get_current_week(self, season: int | None = None, now: datetime | None = None) -> dict | None:
+        """Returns the calendar entry for the current CFB week, or None if off-season.
+
+        Determines the current week by checking which calendar week's
+        date range contains the given time (defaults to current UTC time).
+
+        Args:
+            season (int | None): season to check. Defaults to current season.
+            now (datetime | None): time to check against. Defaults to UTC now.
+
+        Returns:
+            dict | None: calendar entry with 'week', 'seasonType', etc., or None
+        """
+        season = season or current_season()
+        calendar = self.get_calendar(season)
+        now = now or datetime.now(timezone.utc)
+
+        for entry in calendar:
+            start_str = entry.get("startDate")
+            end_str = entry.get("endDate")
+            if not start_str or not end_str:
+                continue
+            start = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
+            end = datetime.fromisoformat(end_str.replace("Z", "+00:00"))
+            if start <= now <= end:
+                return entry
+
+        return None
 

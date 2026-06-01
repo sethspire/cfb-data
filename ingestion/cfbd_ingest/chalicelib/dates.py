@@ -12,6 +12,6 @@ def current_season() -> int:
     """Returns the current season. 
     
     Ex: 2024 season is February 1, 2024 - January 31, 2025"""
-    cur = datetime.datetime.now()
+    cur = datetime.now(timezone.utc)
     season = cur.year - (cur.month < 2)
     return season

@@ -3,9 +3,22 @@
   "app_name": "cfbd_ingest",
   "stages": {
     "dev": {
+      "autogen_policy": false,
+      "iam_policy_file": "policy.json",
+      "lambda_functions": {
+        "api_handler": {
+          "lambda_timeout": 120,
+          "lambda_memory_size": 512
+        },
+        "weekly_ingest": {
+          "lambda_timeout": 120,
+          "lambda_memory_size": 256
+        }
+      },
       "environment_variables": {
         "BRONZE_BUCKET": "<bucket-name>",
-        "CFBD_API_KEY": "<api-key>"
+        "CFBD_API_KEY": "<api-key>",
+        "INGESTION_API_SECRET": "<secret>"
       }
     }
   }

@@ -1,0 +1,23 @@
+#!/bin/bash
+set -euo pipefail
+
+# Install system dependencies
+sudo dnf install -y git
+
+# Install uv (Python package manager)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+# source "$HOME/.cargo/env" 2>/dev/null || true
+export PATH="/root/.local/bin:$PATH"
+
+# Clone the repo
+git clone https://github.com/sethspire/cfb-data.git /home/ec2-user/cfb-data
+cd /home/ec2-user/cfb-data
+
+# Install Python dependencies
+uv sync
+
+# Run backfill
+export CFBD_API_KEY="${cfbd_api_key}"
+uv run python scripts/backfill.py \
+  --bucket "${bucket_name}" \
+  --delay 1.0 2>&1 | tee /home/ec2-user/backfill.log
