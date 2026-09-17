@@ -1,86 +1,87 @@
-# College Football Data ETL+Analytics Pipeline
+# College Football Data Platform
 
-## Overview
-This project serves as an implementation of a production analytics pipeline for College Football data. It will be hosted fully in AWS allowing for scheduled jobs for ETL processes as well as constantly updating analytics.
+An AWS-based data engineering platform for ingesting, validating, correcting, and analyzing historical college football data.
 
-## ETL
-The project uses a medallion-style data lake architecture built on AWS S3. Data progresses through multiple layers as it becomes more refined, validated, and analytics-ready.
+The project is designed around a **medallion data architecture** that preserves immutable source data while producing validated, reproducible datasets for analytics and predictive modeling.
 
-### *Bronze Layer (Raw Data)*
+## Architecture
 
-The Bronze layer stores immutable raw source data exactly as received from upstream APIs and external datasets.Data is partitioned in S3 using Hive-style paths:
+External APIs / Data Sources  
+**↓**  
+Bronze: Immutable Raw JSON  
+**↓**  
+Validation + Transformation  **→**  Quarantine (Invalid Rows)  **→**  Corrections  **→**  Reprocess  **⟲**  
+**↓**  
+Silver: Validated Parquet  
+**↓**  
+Gold: Analytics / Features  
+
+
+## Design Goals
+
+The pipeline is built around several data-engineering principles:
+
+- preserve the original source data
+- never silently discard invalid records
+- make corrections reproducible and auditable
+- separate ingestion from analytical datasets
+- allow failed records to be corrected and replayed
+- support efficient historical queries and downstream modeling
+
+## Bronze Layer
+
+Raw API responses are stored unchanged in Amazon S3 with ingestion metadata and Hive-style partitioning.
+
+Example:
 
 `bronze/source=cfbdata/entity=games/ingest_date=2026-09-01/`
 
-Raw payloads are stored primarily as JSON files with ingestion metadata and timestamps.
+This provides an immutable record of the data received from each upstream source.
 
-### *Quarantine Layer*
+## Validation and Quarantine
 
-Records that fail validation or transformation rules are written to a quarantine layer rather than discarded. This ensures:
-- no silent data loss
-- auditability
-- reproducible debugging
-- replayable pipeline recovery
+Records are validated before entering canonical datasets.
 
-Quarantined records contain:
+Invalid records are written to a quarantine layer containing:
 
-raw/transformed row data
-validation errors
-ingestion metadata
-pipeline context
+- the problematic record
+- validation errors
+- ingestion metadata
+- relevant pipeline context
 
-### *Silver Layer (Validated Canonical Data)*
+This prevents malformed data from contaminating downstream datasets while preserving enough information for debugging and recovery.
 
-The Silver layer contains cleaned, standardized, and validated datasets derived from Bronze data.
+## Silver Layer
 
-Typical processing includes:
+Validated data is standardized and stored as partitioned Parquet.
+
+Processing includes:
 
 - schema validation
 - type normalization
 - deduplication
 - entity normalization
 - timestamp standardization
+- approved corrections
 
-Silver datasets are stored as partitioned Parquet files in S3 for efficient analytical querying.
+The resulting datasets are optimized for analytical querying through tools such as Amazon Athena.
 
-Example structure:
+## Reproducible Corrections
 
-`silver/entity=plays/season=2026/week=7/`
+Known source-data issues are stored independently rather than modifying the original Bronze data.
 
-Parquet + Hive-style partitioning enables:
+Approved corrections can then be applied when quarantined records are reprocessed, providing an auditable and reproducible approach to data cleaning.
 
-- efficient Athena queries
-- partition pruning
-- columnar compression
-- scalable historical analytics
+## Gold Layer
 
-### *Gold Layer (Analytics & Feature Data)*
+The Gold layer is being designed for derived analytical datasets such as:
 
-The Gold layer contains curated analytical datasets and derived metrics used for:
-
-- statistical analysis
-- feature engineering
-- predictive modeling
+- EPA and efficiency metrics
+- opponent-adjusted ratings
+- rolling statistics
+- model features
 - dashboards and APIs
 
-Gold datasets are reproducible and regenerated from Silver data whenever:
+## Technologies
 
-- source data changes
-- validation rules change
-- new metrics/features are introduced
-
-Examples:
-
-- EPA metrics
-- opponent-adjusted efficiencies
-- team ratings
-- rolling statistics
-- model feature sets
-
-## Deployment
-
-1. update the following values:
-    - **/ingestion/cfbd_ingest/.chalice/config-ex.json**:
-        - rename file to **config.json**
-        - update `BRONZE_BUCKET` to the name of your S3 bucket
-        - update `CFBD_API_KEY` to your CollegeFootballDatabase.com API key
+Python · Pandas · Pandera · PyArrow/Parquet · pytest · AWS S3 · Athena · Chalice · REST APIs
